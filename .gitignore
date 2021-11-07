@@ -1,0 +1,4 @@
+#local files
+*.in
+*.exe
+tempCodeRunnerFile.c
