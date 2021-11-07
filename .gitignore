@@ -2,3 +2,4 @@
 *.in
 *.exe
 tempCodeRunnerFile.c
+.vscode/
