@@ -25,27 +25,26 @@
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct node{
+typedef struct node{
     char data;
     struct node* next;
-} ;
-typedef struct node Node;
+} node;
 
-struct dataStore {
-    Node *content;  //pointer to the input string
-    Node *curr; //current node, replace index later
-    int resultArr[26];
-} dataStore;
+typedef struct sharedMemory {
+    node *content;  //pointer to the input string
+    node *curr; //current node, replace index later
+    int charCount[26];
+} sharedMemory;
 
-Node* append(char data){
-    Node* new = (Node*)malloc(sizeof(Node));
+node* append(char data){
+    node* new = (node*)malloc(sizeof(node));
     new->data = data;
     new->next = NULL;
     return new;
 }
 
-void freeList(Node* hnode) {
-    Node* temp;
+void freeList(node* hnode) {
+    node* temp;
     while(hnode != NULL){
         temp = hnode;
         hnode = hnode->next;
@@ -53,16 +52,14 @@ void freeList(Node* hnode) {
     }
 }
 
-void *test1(void *arg){
-    struct dataStore *datL = (struct dataStore *)arg;
-    Node* curr = datL->curr;
+void *thread(void *arg){
+    sharedMemory *datL = (sharedMemory *)arg;
+    node* curr = datL->curr;
     while(curr != NULL){
         //sleep(1);
         pthread_mutex_lock(&mutex); //lock when interacting with shared memory
         curr = datL->curr;
-        char *cp1 = &curr->data;
-        char currentChar = curr->data;
-        datL->resultArr[currentChar - 97] += 1;
+        datL->charCount[curr->data - 97] += 1;
         curr = curr->next;
         datL->curr = curr;
         pthread_mutex_unlock(&mutex);
@@ -81,19 +78,19 @@ void printResult(int arr[26]){
 int main(int argc, char *argv[]){
     pthread_t t1;
     pthread_t t2;
-    struct dataStore dat;
+    sharedMemory dat;
     char input[] = "abxasaaoirghaoi"; //file input here
-    Node *hnode;
-    hnode = (Node*)malloc(sizeof(Node));    //assign mem for first node
-    Node *cur = hnode;
+    node *hnode;
+    hnode = (node*)malloc(sizeof(node));    //assign mem for first node
+    node *cur = hnode;
     for(int j = 0; j < strlen(input); j++){ //Insert string array into linkedlist
         cur->next = append(input[j]);
         cur = cur->next;
     }
 
-    dat.content = hnode; //store linked list
+    dat.content = hnode; //store 2linked list
     dat.curr = hnode->next;
-    memset(dat.resultArr, 0, sizeof(dat.resultArr)); //Initialize with all 0, otherwise random number will appear
+    memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
 
     printf("Input: ");
     cur = hnode;
@@ -101,15 +98,14 @@ int main(int argc, char *argv[]){
     while(cur != NULL){
         printf("%c", cur->data);
         cur = cur->next;
-
     }
     printf("\n");
 
-    pthread_create(&t1, NULL, test1, (void *)&dat);
-    pthread_create(&t2, NULL, test1, (void *)&dat);
+    pthread_create(&t1, NULL, thread, (void *)&dat);
+    pthread_create(&t2, NULL, thread, (void *)&dat);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
-    printResult(dat.resultArr);
+    printResult(dat.charCount);
 
     freeList(hnode);
 
