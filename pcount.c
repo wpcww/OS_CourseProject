@@ -31,8 +31,8 @@ typedef struct node{
 } node;
 
 typedef struct sharedMemory {
-    node *content;  //pointer to the input string
-    node *curr; //current node, replace index later
+    node *content;      //pointer to the input string
+    node *curr;         //current node
     int charCount[26];
 } sharedMemory;
 
@@ -75,39 +75,49 @@ void printResult(int arr[26]){
     }
 }
 
-int main(int argc, char *argv[]){
+void fileToLL(char *argv[]){
+
+
+}
+
+int main(int argc, char *argv[]){    
     pthread_t t1;
     pthread_t t2;
     sharedMemory dat;
-    char input[] = "abxasaaoirghaoi"; //file input here
-    node *hnode;
-    hnode = (node*)malloc(sizeof(node));    //assign mem for first node
-    node *cur = hnode;
-    for(int j = 0; j < strlen(input); j++){ //Insert string array into linkedlist
-        cur->next = append(input[j]);
+    sharedMemory *stack[argc];
+    //char input[] = "abxasaaoirghaoi"; //file input here
+
+    for (int i = 1; i < argc; i++){
+        node *hnode;
+        hnode = (node*)malloc(sizeof(node));    //assign mem for first node
+        node *cur = hnode;
+        for(int j = 0; j < strlen(argv[i]); j++){ //Insert string array into linkedlist
+            cur->next = append(argv[i][j]);
+            cur = cur->next;
+        }
+
+        dat.content = hnode; //store 2linked list
+        dat.curr = hnode->next;
+        memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
+        
+        printf("Input: ");
+        cur = hnode;
         cur = cur->next;
+        while(cur != NULL){
+            printf("%c", cur->data);
+            cur = cur->next;
+        }
+        printf("\n");
+
+        pthread_create(&t1, NULL, thread, (void *)&dat);
+        pthread_create(&t2, NULL, thread, (void *)&dat);
+        pthread_join(t1, NULL);
+        pthread_join(t2, NULL);
+        printResult(dat.charCount);
+
+        freeList(hnode);        
     }
 
-    dat.content = hnode; //store 2linked list
-    dat.curr = hnode->next;
-    memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
-
-    printf("Input: ");
-    cur = hnode;
-    cur = cur->next;
-    while(cur != NULL){
-        printf("%c", cur->data);
-        cur = cur->next;
-    }
-    printf("\n");
-
-    pthread_create(&t1, NULL, thread, (void *)&dat);
-    pthread_create(&t2, NULL, thread, (void *)&dat);
-    pthread_join(t1, NULL);
-    pthread_join(t2, NULL);
-    printResult(dat.charCount);
-
-    freeList(hnode);
 
     return 0;
 }
