@@ -68,51 +68,41 @@ void *thread(void *arg){
 }
 
 void printResult(int arr[26]){
-    for(int i = 0; i < 25; i++){
+    for(int i = 0; i < 26; i++){
         if(arr[i] > 0){
             printf("%c %d\n", 97 + i, arr[i]);
         }
     }
 }
 
-void fileToLL(char *argv[]){
-
-
-}
-
-int main(int argc, char *argv[]){    
-    pthread_t t1;
-    pthread_t t2;
+int main(int argc, char *argv[]){
     sharedMemory dat;
-    sharedMemory *stack[argc];
-    //char input[] = "abxasaaoirghaoi"; //file input here
+
+
 
     for (int i = 1; i < argc; i++){
+        FILE *f;
+        f = fopen(argv[i], "r");
         node *hnode;
         hnode = (node*)malloc(sizeof(node));    //assign mem for first node
         node *cur = hnode;
-        for(int j = 0; j < strlen(argv[i]); j++){ //Insert string array into linkedlist
-            cur->next = append(argv[i][j]);
+        while(!feof(f)){ //Insert string array into linkedlist
+            cur->next = append(fgetc(f));
             cur = cur->next;
         }
+        fclose(f);
 
         dat.content = hnode; //store 2linked list
         dat.curr = hnode->next;
         memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
         
-        printf("Input: ");
-        cur = hnode;
-        cur = cur->next;
-        while(cur != NULL){
-            printf("%c", cur->data);
-            cur = cur->next;
-        }
-        printf("\n");
-
+        pthread_t t1;
+        //pthread_t t2;
         pthread_create(&t1, NULL, thread, (void *)&dat);
-        pthread_create(&t2, NULL, thread, (void *)&dat);
+        //pthread_create(&t2, NULL, thread, (void *)&dat);
         pthread_join(t1, NULL);
-        pthread_join(t2, NULL);
+        //pthread_join(t2, NULL);
+        printf("%s\n", argv[i]);
         printResult(dat.charCount);
 
         freeList(hnode);        
