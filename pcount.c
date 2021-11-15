@@ -77,7 +77,7 @@ sharedMemory datInit(node *hnode, int j, int fileCharCount){
     sharedMemory dat;
     node *temp = hnode->next;
     //dat.start = temp + j * (2 * (fileCharCount - fileCharCount%3)/3);
-    for(int i = 0; i < j * 2; i++){
+    for(int i = 0; i < j * (fileCharCount - fileCharCount%3)/3; i++){
         temp = temp->next;
     }
     dat.start = temp;
