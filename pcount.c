@@ -26,42 +26,24 @@
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int mainCountList[26];
 
-typedef struct node{
-    char data;
-    struct node* next;
-} node;
-
 typedef struct sharedMemory {
-    node *start;
     int counter;        //Record sorted number of chars
     int charCount[26];
+    int startIndex;
+    char *content;
 } sharedMemory;
-
-node* append(char data){
-    node* new = (node*)malloc(sizeof(node));
-    new->data = data;
-    new->next = NULL;
-    return new;
-}
-
-void freeList(node* hnode) {
-    node* temp;
-    while(hnode != NULL){
-        temp = hnode;
-        hnode = hnode->next;
-        free(temp);
-    }
-}
 
 void *thread(void *arg){
     sharedMemory *datL = (sharedMemory *)arg;
-    node* curr = datL->start;
-    while(datL->counter > 0 && curr->next != NULL){
-        //printf("char: %c\n", curr->data);
-        datL->charCount[curr->data - 97] += 1;
-        curr = curr->next;
-        datL->counter -= 1;
+    int indL = datL->startIndex;
+    int endL = datL->counter;
+    for(int i = 0; i < endL; i++){
+        //printf("%d\n", datL->content[i] - 97);
+        datL->charCount[datL->content[indL + i] - 97] += 1;
+        //printf("Count %c: %d\n", datL->content[indL + i], datL->charCount[datL->content[indL + i] - 97]);
     }
+    //printf("%d\n", endL);
+    //printf("%d\n", datL->charCount[17]);
     pthread_exit(NULL);
 }
 
@@ -73,68 +55,66 @@ void printResult(int arr[26]){
     }
 }
 
-sharedMemory datInit(node *hnode, int j, int fileCharCount){
+sharedMemory datInit(int j, int byteCount, int aThread, char *buffer){
     sharedMemory dat;
-    node *temp = hnode->next;
-    //dat.start = temp + j * (2 * (fileCharCount - fileCharCount%3)/3);
-    for(int i = 0; i < j * (fileCharCount - fileCharCount%3)/3; i++){
-        temp = temp->next;
-    }
-    dat.start = temp;
-    //printf("%d\n", j);
-    //printf("%d\n", (j * (2 * (fileCharCount - fileCharCount%3)/3)));
-    //printf("%c\n", dat.start->data);
-    if(j == 3){
-        dat.counter = fileCharCount%3;
+    dat.content = buffer;
+    dat.startIndex = 0 + j * (byteCount - byteCount%aThread)/aThread;
+    //printf("%c\n", dat.content[dat.startIndex]);
+    if(j == aThread){
+        dat.counter = byteCount % aThread;
     }else{
-        dat.counter = (fileCharCount - fileCharCount%3)/3;
+        dat.counter = (byteCount - byteCount % aThread)/aThread;
     }
+    //printf("%d\n",dat.counter);
     memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
     return dat;
 }
 
 int main(int argc, char *argv[]){
+    int availableThread = 3;
+    int aThread = availableThread - 1;
+    char *buffer;
+    long byteCount;
     for (int i = 1; i < argc; i++){
         FILE *f;
         f = fopen(argv[i], "r");
-        node *hnode;
-        hnode = (node*)malloc(sizeof(node));    //assign mem for first node
-        node *cur = hnode;
-        int fileCharCount = -1; // Remove the count of null at EOF
-
-        while(!feof(f)){ //Insert string array into linkedlist
-            cur->next = append(fgetc(f));
-            fileCharCount++;
-            cur = cur->next;
+        int readCheck;
+        fseek(f, 0L, SEEK_END);
+        byteCount = ftell(f);
+        fseek(f, 0L, SEEK_SET);
+        buffer = (char*)calloc(byteCount, sizeof(char));
+        readCheck = fread(buffer, sizeof(char), byteCount, f);
+        //printf("fread: %d\n", readCheck);
+        while(readCheck != byteCount){//retry
+            free(buffer);
+            buffer = (char*)calloc(byteCount, sizeof(char));
+            readCheck = fread(buffer, sizeof(char), byteCount, f);
         }
+        //printf("%d %d\n", readCheck, byteCount);
         fclose(f);
 
-        cur = hnode->next;
-        while(cur->next != NULL){
-            //printf("%d\n", &cur->data);
-            cur = cur->next;
-        }
-        //printf("\n");
-
-        //printf("%d\n", fileCharCount);
         pthread_t *threadStack;
-        threadStack = (pthread_t *)malloc(4 * sizeof(pthread_t));
-        sharedMemory datStack[4];
-        for(int j = 0; j < 4; j++){
-            datStack[j] = datInit(hnode, j, fileCharCount);
-            //printf("%c\n", datStack[j].start->data);
+        threadStack = (pthread_t *)malloc(availableThread * sizeof(pthread_t));
+        sharedMemory datStack[availableThread];
+        for(int j = 0; j < availableThread; j++){
+            datStack[j] = datInit(j, byteCount, aThread, buffer);
+            //printf("%d\n", datStack[j].startIndex);
             pthread_create(&threadStack[j], NULL, thread, (void *)&datStack[j]);
+            //printf("Created\n");
+            //printf("here\n");
         }
-        for (int j = 0; j < 4; j++){
+        for (int j = 0; j < availableThread; j++){
             pthread_join(threadStack[j], NULL);
+            //printf("%d\n", datStack[j].charCount[1]);
             for(int k = 0; k < 26; k++){
                 mainCountList[k] += datStack[j].charCount[k];
             }
         }
-
+        //printf("here\n");
+        free(buffer);
+        free(threadStack); 
         printf("%s\n", argv[i]);
-        printResult(mainCountList);
-        freeList(hnode);        
+        printResult(mainCountList);   
     }
 
 
