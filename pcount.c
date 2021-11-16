@@ -24,7 +24,6 @@
 #include <unistd.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static int mainCountList[26];
 
 typedef struct sharedMemory {
     int counter;        //Record sorted number of chars
@@ -71,13 +70,44 @@ sharedMemory datInit(int j, int byteCount, int aThread, char *buffer){
 }
 
 int main(int argc, char *argv[]){
+    char *sorted[argc-1];
+    char fileCount = argc - 1;
+    if(fileCount == 0){
+        //printf("0\n");
+        printf("pzip: file1 [file2 ...]\n");
+        return 1;
+    }else if(fileCount == 1){
+        //printf("1\n");
+        sorted[0] = argv[1];
+    }else if(fileCount > 1){
+        //printf(">1\n");
+        for(int i = 0; i < argc - 1; i++){
+            sorted[i] = argv[i + 1];
+        }
+        char *cmp;
+        for(int i = 0;i <fileCount;i++) 
+        {
+            for(int j = i + 1;j < fileCount;j++)
+            {           
+                if(strcmp(sorted[i], sorted[j]) > 0)
+                {   
+                    cmp = sorted[i];
+                    sorted[i] = sorted[j];   
+                    sorted[j] = cmp;              
+                }    
+            } 
+        }
+    }
+
     int availableThread = 3;
     int aThread = availableThread - 1;
     char *buffer;
     long byteCount;
-    for (int i = 1; i < argc; i++){
+    for (int i = 0; i < fileCount; i++){
+        int mainCountList[26];
+        memset(mainCountList, 0, sizeof(mainCountList));
         FILE *f;
-        f = fopen(argv[i], "r");
+        f = fopen(sorted[i], "r");
         int readCheck;
         fseek(f, 0L, SEEK_END);
         byteCount = ftell(f);
@@ -113,7 +143,7 @@ int main(int argc, char *argv[]){
         //printf("here\n");
         free(buffer);
         free(threadStack); 
-        printf("%s\n", argv[i]);
+        printf("%s\n", sorted[i]);
         printResult(mainCountList);   
     }
 
