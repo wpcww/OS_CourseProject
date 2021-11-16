@@ -83,9 +83,9 @@ int main(int argc, char *argv[]){
         byteCount = ftell(f);
         fseek(f, 0L, SEEK_SET);
         buffer = (char*)calloc(byteCount, sizeof(char));
-        readCheck = fread(buffer, sizeof(char), byteCount, f);
+        readCheck = fread(buffer, sizeof(char), byteCount, f); //fread return value needs to be stored and used
         //printf("fread: %d\n", readCheck);
-        while(readCheck != byteCount){//retry
+        while(readCheck != byteCount){
             free(buffer);
             buffer = (char*)calloc(byteCount, sizeof(char));
             readCheck = fread(buffer, sizeof(char), byteCount, f);
