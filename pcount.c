@@ -4,9 +4,9 @@
  *
  * Group No.: 10 (Join a project group in Canvas)
  * First member's full name: Marcus Owen LEE
- * First member's email address: marcuslee6-c@my.cityu.edu.hk
+ * First member's email address: 
  * Second member's full name: Sze Man FUNG
- * Second member's email address: szfung9-c@my.cityu.edu.hk
+ * Second member's email address: 
  * Third member's full name: Wai Pong CHEUNG
  * Third member's email address: wpcheung33-c@cityu.edu.hk
  */
@@ -31,11 +31,6 @@ typedef struct sharedMemory {
     int startIndex;
     char *content;
 } sharedMemory;
-
-typedef struct singleFileMemory {
-    char *filename; //*sorted[x]
-    int fileCharCount[26];
-} singleFileMemory;
 
 void *thread(void *arg){
     sharedMemory *datL = (sharedMemory *)arg;
@@ -74,56 +69,6 @@ sharedMemory datInit(int j, int byteCount, int aThread, char *buffer){
     return dat;
 }
 
-void *singleFileThread(void *arg){
-    singleFileMemory *datL = (singleFileMemory *)arg;
-    char *filename = datL->filename;
-    int availableThread = 3;
-    int aThread = availableThread - 1;
-    char *buffer;
-    long byteCount;
-    FILE *f;
-    f = fopen(filename, "r");
-    int readCheck;
-    fseek(f, 0L, SEEK_END);
-    byteCount = ftell(f);
-    fseek(f, 0L, SEEK_SET);
-    buffer = (char*)calloc(byteCount, sizeof(char));
-    readCheck = fread(buffer, sizeof(char), byteCount, f); //fread return value needs to be stored and used
-    //printf("fread: %d\n", readCheck);
-    while(readCheck != byteCount){
-        free(buffer);
-        buffer = (char*)calloc(byteCount, sizeof(char));
-        readCheck = fread(buffer, sizeof(char), byteCount, f);
-    }
-    //printf("%d %d\n", readCheck, byteCount);
-    fclose(f);
-
-    pthread_t *threadStack;
-    threadStack = (pthread_t *)malloc(availableThread * sizeof(pthread_t));
-    sharedMemory datStack[availableThread];
-    for(int j = 0; j < availableThread; j++){
-        datStack[j] = datInit(j, byteCount, aThread, buffer);
-        //printf("%d\n", datStack[j].startIndex);
-        pthread_create(&threadStack[j], NULL, thread, (void *)&datStack[j]);
-        //printf("Created\n");
-        //printf("here\n");
-    }
-    for (int j = 0; j < availableThread; j++){
-        pthread_join(threadStack[j], NULL);
-        //printf("%d\n", datStack[j].charCount[1]);
-        for(int k = 0; k < 26; k++){
-            datL->fileCharCount[k] += datStack[j].charCount[k];
-        }
-    }
-    //printf("here\n");
-    free(buffer);
-    free(threadStack); 
-    //printf("%s\n", filename);
-    //printResult(mainCountList); 
-
-    pthread_exit(NULL);
-}
-
 int main(int argc, char *argv[]){
     char *sorted[argc-1];
     char fileCount = argc - 1;
@@ -154,32 +99,49 @@ int main(int argc, char *argv[]){
         }
     }
 
-    int fileCountListSize = (fileCount - fileCount% 2)/2 + fileCount%2;
-    int filecountlist[fileCountListSize];
-    for(int i = 0; i < fileCountListSize; i++){
-        if(i != (fileCount - fileCount% 2)/2){
-            filecountlist[i] = 2;
-        }else{
-            filecountlist[i] = fileCount%2; 
+    int availableThread = 3;
+    int aThread = availableThread - 1;
+    char *buffer;
+    long byteCount;
+    for (int i = 0; i < fileCount; i++){
+        int mainCountList[26];
+        memset(mainCountList, 0, sizeof(mainCountList));
+        FILE *f;
+        f = fopen(sorted[i], "r");
+        int readCheck;
+        fseek(f, 0L, SEEK_END);
+        byteCount = ftell(f);
+        fseek(f, 0L, SEEK_SET);
+        buffer = (char*)calloc(byteCount, sizeof(char));
+        byteCount = fread(buffer, sizeof(char), byteCount, f); //fread return value needs to be stored and used
+        //printf("fread: %d\n", readCheck);
+        //printf("%d %d\n", readCheck, byteCount);
+        fclose(f);
+
+        pthread_t *threadStack;
+        threadStack = (pthread_t *)malloc(availableThread * sizeof(pthread_t));
+        sharedMemory datStack[availableThread];
+        for(int j = 0; j < availableThread; j++){
+            datStack[j] = datInit(j, byteCount, aThread, buffer);
+            //printf("%d\n", datStack[j].startIndex);
+            pthread_create(&threadStack[j], NULL, thread, (void *)&datStack[j]);
+            //printf("Created\n");
+            //printf("here\n");
         }
-        //printf("%d\n", filecountlist[i]);
+        for (int j = 0; j < availableThread; j++){
+            pthread_join(threadStack[j], NULL);
+            //printf("%d\n", datStack[j].charCount[1]);
+            for(int k = 0; k < 26; k++){
+                mainCountList[k] += datStack[j].charCount[k];
+            }
+        }
+        //printf("here\n");
+        free(buffer);
+        free(threadStack); 
+        printf("%s\n", sorted[i]);
+        printResult(mainCountList);   
     }
 
-    pthread_t *fileThreadStack;
-    fileThreadStack=(pthread_t *)malloc(fileCount * sizeof(pthread_t ));
-    singleFileMemory fileDataStack[fileCount];
-    for(int o = 0; o < fileCountListSize; o++){
-            for (int i = 0; i < filecountlist[o]; i++){
-                fileDataStack[i + o * 2].filename = sorted[i];
-                memset(fileDataStack[i + o * 2].fileCharCount, 0, sizeof(fileDataStack[i + o * 2].fileCharCount));
-                pthread_create(&fileThreadStack[i + o * 2], NULL, singleFileThread, (void *)&fileDataStack[i + o * 2]);
-            }
-            for (int i = 0; i < filecountlist[o]; i++){
-                pthread_join(fileThreadStack[i + o * 2], NULL);
-                printf("%s\n", fileDataStack[i + o * 2].filename);
-                printResult(fileDataStack[i + o * 2].fileCharCount);
-            }
-    }
-    free(fileThreadStack); 
+
     return 0;
 }
