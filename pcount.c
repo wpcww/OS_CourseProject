@@ -108,7 +108,6 @@ int main(int argc, char *argv[]){
         memset(mainCountList, 0, sizeof(mainCountList));
         FILE *f;
         f = fopen(sorted[i], "r");
-        int readCheck;
         fseek(f, 0L, SEEK_END);
         byteCount = ftell(f);
         fseek(f, 0L, SEEK_SET);
