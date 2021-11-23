@@ -40,6 +40,7 @@ void *thread(void *arg){
         //printf("%d\n", datL->content[i] - 97);
         datL->charCount[datL->content[indL + i] - 97] += 1;
         //printf("Count %c: %d\n", datL->content[indL + i], datL->charCount[datL->content[indL + i] - 97]);
+        printf("　");
     }
     //printf("%d\n", endL);
     //printf("%d\n", datL->charCount[17]);
@@ -61,8 +62,10 @@ sharedMemory datInit(int j, int byteCount, int aThread, char *buffer){
     //printf("%c\n", dat.content[dat.startIndex]);
     if(j == aThread){
         dat.counter = byteCount % aThread;
+        //printf("%d\n", byteCount % aThread);
     }else{
         dat.counter = (byteCount - byteCount % aThread)/aThread;
+        //printf("%d\n", (byteCount - byteCount % aThread)/aThread);
     }
     //printf("%d\n",dat.counter);
     memset(dat.charCount, 0, sizeof(dat.charCount)); //Initialize with all 0, otherwise random number will appear
@@ -99,7 +102,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    int availableThread = 3;
+    int availableThread = 80;
     int aThread = availableThread - 1;
     char *buffer;
     long byteCount;
