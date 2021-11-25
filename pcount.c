@@ -71,7 +71,7 @@ sharedMemory datInit(int j, int byteCount, int aThread, char *buffer){
 }
 
 int main(int argc, char *argv[]){
-    int availableThread = 3;
+    int availableThread = 80;
     int aThread = availableThread - 1;
     char *buffer;
     long byteCount;
