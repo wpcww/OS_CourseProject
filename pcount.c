@@ -99,7 +99,6 @@ int main(int argc, char *argv[]){       //argc: how many files, argv: the array 
         memset(mainCountList, 0, sizeof(mainCountList));
         FILE *f;
         f = fopen(sorted[i], "r");
-        int readCheck;
         fseek(f, 0L, SEEK_END);
         byteCount = ftell(f);
         fseek(f, 0L, SEEK_SET);
